@@ -1,4 +1,7 @@
 # Hello
 
-This is an awesome project.
-It does cool stuff.
+## Plan 2024-02-02
+
+- set up test pipeline in GitHub Actions
+- continue a bit playing with the MET api
+
