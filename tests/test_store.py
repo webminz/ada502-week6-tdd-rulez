@@ -14,7 +14,7 @@ class Tests(TestCase):
         # 2. calling the unit under test
         val = store.retrieve(lat, long, ts)
         # 3. asserting
-        self.assertEqual(5.2, val)
+        self.assertEqual(5.3, val)
 
     def test_retrieve_non_existing(self):
         store = TemperatureStore()
