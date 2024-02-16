@@ -9,6 +9,8 @@ readme = "README.md"
 python = "^3.12"
 requests = "^2.31.0"
 python-dotenv = "^1.0.1"
+fastapi = "^0.109.2"
+uvicorn = {extras = ["standard"], version = "^0.27.1"}
 
 
 [tool.poetry.group.test.dependencies]
