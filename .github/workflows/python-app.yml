@@ -6,8 +6,6 @@ name: CI Pipeline
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
 permissions:
   contents: read
@@ -19,7 +17,7 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Set up Python 3.12
+    - name: Set up Python 3.11
       uses: actions/setup-python@v3
       with:
         python-version: "3.12"
@@ -32,6 +30,11 @@ jobs:
       run: |
         poetry install
         poetry install --with test
-    - name: Test with pytest
+    - name: Unit Test with pytest
       run: |
-        poetry run pytest
+        poetry run pytest tests
+    - name: Integration Test with pytest
+      run: |
+        poetry run pytest integ_tests
+      env:
+        MET_CLIENT_ID: ${{ secrets.MET_CLIENT_ID }}
