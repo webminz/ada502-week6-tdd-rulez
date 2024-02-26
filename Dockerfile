@@ -7,8 +7,8 @@ COPY pages pages
 COPY pyproject.toml .
 COPY README.md .
 # execute bash commands (one time during build) to add third party dependencies in the image
-RUN pip install pipx
-RUN pipx install poetry
-RUN /root/.local/bin poetry install
+RUN python3 -m pip install --upgrade pip
+RUN python3 -m pip install poetry
+RUN poetry install
 # command to execute on container startup
-CMD ["/root/.local/bin/poetry", "run", "uvicorn", "temp_store.web:app"]
+CMD ["poetry", "run", "uvicorn", "--host", "0.0.0.0", "temp_store.web:app"]
