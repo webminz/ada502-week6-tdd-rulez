@@ -1,35 +1,36 @@
-import requests
+from abc import abstractmethod
+from datetime import datetime
+from temp_store.domain import Location, TemperatureRecording
 
 class TemperatureRetriever:
 
-    def retrieve(self, lat, long, ts):
-        # do api calling
-        print("Hey i am the real one")
-        return 42
-        
+    @abstractmethod
+    def retrieve(self, location: Location, from_ts: datetime, until_ts: datetime) -> list[float]:
+       pass 
 
 
 class TemperatureStore:
 
-
     def __init__(self) -> None:
-        self.locations = {}
+        self.locations : dict[Location, dict[datetime, float]] = {}
 
-    def store(self, lat, long, ts, temp):
+    def store(self, location: Location, ts: datetime, temp: float) -> None:
         """
         This method stores a temperature observation.
         """
-        if (lat, long) in self.locations:
-            location_map = self.locations[(lat, long)]
+        if location in self.locations:
+            location_map = self.locations[location]
         else:
             location_map = {}
-            self.locations[(lat, long)] = location_map
+            self.locations[location] = location_map
         location_map[ts] = temp
 
 
-    def retrieve(self, lat, long, ts):
-        if (lat, long) in self.locations:
-            location_map = self.locations[(lat, long)]
-            if ts in location_map:
-                return location_map[ts]
+    def retrieve(self, location: Location, ts: datetime) -> TemperatureRecording | None:
+        if location in self.locations:
+            location_map = self.locations[location]
+            lookup_ts = datetime(year=ts.year, month=ts.month, day=ts.day, hour= ts.hour)
+            if lookup_ts in location_map:
+                value =  location_map[ts]
+                return TemperatureRecording(location=location, timestamp=ts, value=value)
         return None

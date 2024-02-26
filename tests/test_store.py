@@ -1,5 +1,7 @@
+from datetime import datetime
 from unittest import TestCase, main
 from unittest.mock import MagicMock
+from temp_store.domain import Location, TemperatureRecording
 
 from temp_store.store import TemperatureRetriever, TemperatureStore
 
@@ -9,18 +11,21 @@ class Tests(TestCase):
         # 1. Set up
         store = TemperatureStore()
         lat, long = 60.36926,5.34975
-        ts = "2024-01-31T12:31:55"
-        store.store(lat, long, ts, 5.2)
+        location = Location(longitude=long, latitude=lat)
+        ts = datetime.fromisoformat("2024-01-31T12:00:00")
+        store.store(location, ts, 5.2)
         # 2. calling the unit under test
-        val = store.retrieve(lat, long, ts)
+        val = store.retrieve(location, datetime.fromisoformat("2024-01-31T12:00:00"))
         # 3. asserting
-        self.assertEqual(5.2, val)
+        expected = TemperatureRecording(location, datetime.fromisoformat("2024-01-31T12:00:00"), 5.2)
+        self.assertEqual(expected, val)
 
     def test_retrieve_non_existing(self):
         store = TemperatureStore()
         lat, long = 60.36926,5.34975
-        ts = "2024-01-31T12:31:55"
-        val = store.retrieve(lat, long, ts)
+        location = Location(longitude=long, latitude=lat)
+        ts = datetime.fromisoformat("2024-01-31T12:31:55")
+        val = store.retrieve(location, ts)
         self.assertIsNone(val)
 
 
@@ -29,14 +34,16 @@ class Tests(TestCase):
         retr.retrieve = MagicMock(return_value=23)
         store = TemperatureStore()
         lat, long = 60.36926,5.34975
-        ts = "2024-01-31T12:31:55"
-        data = retr.retrieve(lat, long, ts)
-        store.store(lat, long, ts, data)
-        val = store.retrieve(lat, long, ts)
-        retr.retrieve.assert_called_with( lat, long , ts)
+        location = Location(longitude=long, latitude=lat)
+        ts = datetime(2024, 2, 1, 11, 0)
+        data = retr.retrieve(location, ts)
+        store.store(location, ts, data)
+        val = store.retrieve(location, ts)
 
-        self.assertEqual(23, val)
-        # ...
+        retr.retrieve.assert_called_with(location, ts)
+        expected = TemperatureRecording(location, ts, 23.0)
+
+        self.assertEqual(expected, val)
 
 
 
