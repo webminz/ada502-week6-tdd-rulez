@@ -11,6 +11,9 @@ requests = "^2.31.0"
 python-dotenv = "^1.0.1"
 fastapi = "^0.109.2"
 uvicorn = {extras = ["standard"], version = "^0.27.1"}
+minio = "^7.2.4"
+pymongo = "^4.6.2"
+psycopg2-binary = "^2.9.9"
 
 
 [tool.poetry.group.test.dependencies]
