@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from datetime import datetime
 from temp_store.domain import Location, TemperatureRecording
+import json
 
 class TemperatureRetriever:
 
@@ -24,6 +25,25 @@ class TemperatureStore:
             location_map = {}
             self.locations[location] = location_map
         location_map[ts] = temp
+
+    def serialize(self) -> str:
+        result = []
+        for l in self.locations.keys():
+            entry = {}
+            entry['latitude'] = l.latitude
+            entry['longitude'] = l.longitude
+            m = self.locations[l]
+            ll = []
+            for ts in m.keys():
+                ll.append({
+                    'ts': ts.isoformat(),
+                    'temperature': m[ts]
+                })
+            entry['temperatures'] = ll
+            result.append(entry)
+        return json.dumps(result)
+
+
 
 
     def retrieve(self, location: Location, ts: datetime) -> TemperatureRecording | None:
