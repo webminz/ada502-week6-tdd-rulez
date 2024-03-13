@@ -1,0 +1,22 @@
+meta {
+  name: Create Location
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:8000/{{location}}?lat={{lat}}&lon={{lon}}
+  body: none
+  auth: none
+}
+
+query {
+  lat: {{lat}}
+  lon: {{lon}}
+}
+
+vars:pre-request {
+  location: hvl
+  lat: 60.3694592
+  lon: 5.3499916
+}

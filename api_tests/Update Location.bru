@@ -1,0 +1,20 @@
+meta {
+  name: Update Location
+  type: http
+  seq: 2
+}
+
+put {
+  url: http://localhost:8000/{{location}}?day={{day}}
+  body: none
+  auth: none
+}
+
+query {
+  day: {{day}}
+}
+
+vars:pre-request {
+  location: hvl
+  day: 2024-03-11
+}
