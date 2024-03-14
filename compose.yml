@@ -19,7 +19,7 @@ services:
     environment:
       - POSTGRES_USER=pgadmin
       - POSTGRES_PASSWORD=pgpasswd
-      - POSTGRES_DB=postgres
+      - POSTGRES_DATABASE=postgres
 
   temp_store:
     image: temp_store:latest
