@@ -16,6 +16,9 @@ class MetClient(TemperatureRetriever):
         r = requests.get(url, auth=(f'{self.client_id}',''))
         r.raise_for_status()
 
+
+
+
         d = r.json()
         sensor = d['data'][0]['id']
 

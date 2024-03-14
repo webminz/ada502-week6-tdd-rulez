@@ -5,6 +5,8 @@ from datetime import date, datetime
 from pydantic import BaseModel, Field, ConfigDict
 from temp_store.domain import Location, TemperatureRecording
 
+
+
 class TemperatureRetriever:
 
     @abstractmethod
@@ -49,16 +51,47 @@ class LocationStore(BaseModel):
         return self.days[day]
 
 
+class TemperatureRepository:
+
+    @abstractmethod
+    def add_measurement(self, location: str, ts: datetime, value: float) -> None:
+        pass
+
+
+    @abstractmethod
+    def load(self, location: Location) -> LocationStore:
+        pass
+
+
+class LocationRepository:
+
+    @abstractmethod
+    def add_loaction(self, location: Location) -> None:
+        pass 
+
+    @abstractmethod
+    def load(self) -> dict[str, Location]:
+        pass
+
+
 class TemperatureStore(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
     locations: dict[str, Location] = {}
     _store: dict[Location, LocationStore] = {}
-    retriver: TemperatureRetriever | None = Field(default=None, exclude=True)
 
-    def create_location(self, name: str, lat: float, lon: float) -> Location:
+    retriver: TemperatureRetriever | None = Field(default=None, exclude=True)
+    location_repo:  LocationRepository | None = Field(default=None, exclude=True)
+    temperature_repo: TemperatureRepository | None = Field(default=None, exclude=True)
+    
+
+    def create_location(self, name: str, lat: float, lon: float) -> Location | str:
+        if name in self.locations:
+            return "location already exists"
         loc = Location(name=name, latitude=lat, longitude=lon)
         self.locations[name] = loc
         self._store[loc] = LocationStore(location=loc, days={})
+        if self.location_repo:
+            self.location_repo.add_loaction(loc)
         return loc
 
 
@@ -72,6 +105,8 @@ class TemperatureStore(BaseModel):
         day = ts.date()
         loc_store = self._store[location]
         loc_store[day] + (ts, temp)
+        if self.temperature_repo:
+            self.temperature_repo.add_measurement(location.name, ts, temp)
 
 
     def retrieve(self, location: str, ts: datetime) -> TemperatureRecording | str |None:
