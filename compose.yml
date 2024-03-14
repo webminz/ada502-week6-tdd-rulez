@@ -1,0 +1,45 @@
+name: temp_store_app
+services:
+  mongosrv:
+    image: mongo:latest
+    volumes:
+      - mongo_volume:/data/db
+    networks:
+      - tem_store_net
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=passwd
+  
+  pgsrv:
+    image: my_postgres:latest 
+    volumes:
+      - pg_volume:/var/lib/postgresql/data
+    networks:
+      - tem_store_net
+    environment:
+      - POSTGRES_USER=pgadmin
+      - POSTGRES_PASSWORD=pgpasswd
+      - POSTGRES_DB=postgres
+
+  temp_store:
+    image: temp_store:latest
+    networks:
+      - tem_store_net
+    ports:
+      - 8000:8000
+    environment:
+      - MET_CLIENT_ID=$MET_CLIENT_ID
+      - MONGO_HOST=mongosrv
+      - MONGO_USER=admin
+      - MONGO_PASSWORD=passwd
+      - POSTGRES_HOST=pgsrv
+      - POSTGRES_USER=pgadmin
+      - POSTGRES_PASSWORD=pgpasswd
+      - POSTGRES_DB=postgres
+
+volumes:
+  pg_volume:
+  mongo_volume:
+
+networks:
+  tem_store_net:
