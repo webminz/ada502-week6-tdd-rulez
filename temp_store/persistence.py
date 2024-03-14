@@ -1,38 +1,13 @@
-from datetime import datetime
+from datetime import datetime, date
 import os
 from temp_store.domain import Location
-from temp_store.store import DayStore, LocationStore 
-from abc import abstractmethod
+from temp_store.store import DayStore, LocationStore, LocationRepository, TemperatureRepository
 
 from psycopg2 import connect
 from pymongo import MongoClient 
 
 
 
-class TemperatureRepository:
-
-    @abstractmethod
-    def save(self, store: LocationStore) -> None:
-        pass
-
-
-    @abstractmethod
-    def load(self, location: Location) -> LocationStore:
-        pass
-
-
-class LocationRepository:
-
-    @abstractmethod
-    def save(self, locations: dict[str, Location]) -> None:
-        pass 
-
-    @abstractmethod
-    def load(self) -> dict[str, Location]:
-        pass
-
-
-        
 
 
 class PostgresRepository(LocationRepository):
@@ -54,13 +29,13 @@ class PostgresRepository(LocationRepository):
         return result
 
 
-    def save(self, locations: dict[str, Location]) -> None:
+    def add_loaction(self, location: Location) -> None:
         cursor = self.connection.cursor()
-        for l in locations.values():
-            cursor.execute("""\
-INSERT INTO locations (location_name, latitude, longitude) VALUES (%(n)s, %(lat)s, %(lon)s) 
-ON CONFLICT ON CONSTRAINT locations_pkey DO UPDATE SET latitude=%(lat)s, longitude=%(lon)s""", {'n': l.name, 'lat': l.latitude, 'lon': l.longitude})
+        cursor.execute("""\
+INSERT INTO locations (location_name, latitude, longitude) VALUES (%(n)s, %(lat)s, %(lon)s)\
+""", {'n': location.name, 'lat': location.latitude, 'lon': location.longitude})
         self.connection.commit()
+
 
 
 class MongoRepository(TemperatureRepository):
@@ -76,15 +51,29 @@ class MongoRepository(TemperatureRepository):
         coll = self.db[location.name]
         data = {}
         for bson in coll.find():
-            keys = [datetime.fromisoformat(d) for d in bson.keys() if d != '_id']
-            k = keys[0]
-            day_store = DayStore(day=k.date(), location=location,temperatures={ ts : bson[ts.isoformat()] for ts in keys })
-            data[k.date()] = day_store
+            k = date.fromisoformat(bson['day'])
+            day_store = DayStore(
+                day=k,
+                location=location,
+                temperatures={ ts : val for ts, val in bson.items() if  }
+            )
+            data[k] = day_store
         result = LocationStore(location=location, days=data)
         return result
 
+
+    def add_measurement(self, location: str, ts: datetime, value: float) -> None:
+        coll = self.db[location] 
+        o = coll.find_one({'day': ts.date().isoformat()})
+        if o:
+            o[ts.isoformat()] = value
+        else:
+            o = {}
+            o['day'] = ts.date().isoformat()
+            o[ts.isoformat()] = value
+            coll.insert_one(o)
+
     def save(self, store: LocationStore) -> None:
-        coll = self.db[store.location.name] 
         for ds in store.days.values():
             coll.insert_one({ts.isoformat():v  for ts, v in ds.temperatures.items() })
 
