@@ -1,3 +1,4 @@
+import re
 from datetime import datetime, date
 import os
 from temp_store.domain import Location
@@ -5,9 +6,6 @@ from temp_store.store import DayStore, LocationStore, LocationRepository, Temper
 
 from psycopg2 import connect
 from pymongo import MongoClient 
-
-
-
 
 
 class PostgresRepository(LocationRepository):
@@ -55,7 +53,7 @@ class MongoRepository(TemperatureRepository):
             day_store = DayStore(
                 day=k,
                 location=location,
-                temperatures={ ts : val for ts, val in bson.items() if  }
+                temperatures={ datetime.fromisoformat(ts) : val for ts, val in bson.items() if re.match(ts, r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}") }
             )
             data[k] = day_store
         result = LocationStore(location=location, days=data)
@@ -73,8 +71,5 @@ class MongoRepository(TemperatureRepository):
             o[ts.isoformat()] = value
             coll.insert_one(o)
 
-    def save(self, store: LocationStore) -> None:
-        for ds in store.days.values():
-            coll.insert_one({ts.isoformat():v  for ts, v in ds.temperatures.items() })
 
 

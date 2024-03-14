@@ -17,43 +17,48 @@ from temp_store.store import TemperatureStore
 from dotenv import  load_dotenv
 
 
-log_level = logging.INFO
-if "LOG_LEVEL" in os.environ:
-    if os.environ["LOG_LEVEL"] == "DEBUG":
-        log_level = logging.DEBUG
-    elif os.environ["LOG_LEVEL"] == "WARN":
-        log_level = logging.WARNING
-    elif os.environ["LOG_LEVEL"] == "ERROR":
-        log_level = logging.ERROR
 
 
-logging.basicConfig(filename="temp_store.log", encoding='utf-8', level=log_level)
-logging.info(f"Temperature Store Startup! Log Level: {logging.getLevelName(log_level)}")
 
-load_dotenv()
 
 store = TemperatureStore()
-retriever = MetClient(os.environ['MET_CLIENT_ID'])
-store.retriver = retriever
 
 
-location_repo = PostgresRepository()
-temperature_repo = MongoRepository()
+
+def on_startup():
+    load_dotenv()
+
+    log_level = logging.INFO
+    if "LOG_LEVEL" in os.environ:
+        if os.environ["LOG_LEVEL"] == "DEBUG":
+            log_level = logging.DEBUG
+        elif os.environ["LOG_LEVEL"] == "WARN":
+            log_level = logging.WARNING
+        elif os.environ["LOG_LEVEL"] == "ERROR":
+            log_level = logging.ERROR
+    logging.basicConfig(filename="temp_store.log", encoding='utf-8', level=log_level)
+    logging.info(f"Temperature Store Startup! Log Level: {logging.getLevelName(log_level)}")
+
+    retriever = MetClient(os.environ['MET_CLIENT_ID'])
+    store.retriver = retriever
+    location_repo = PostgresRepository()
+    temperature_repo = MongoRepository()
+
+    store.locations = location_repo.load()
+    for loc in store.locations.values():
+        store._store[loc] = temperature_repo.load(loc)
+
+    store.temperature_repo = temperature_repo
+    store.location_repo = location_repo
+
 
 # Serve static files
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logging.info("Loading persisted data on startup")
-    store.locations = location_repo.load()
-    for loc in store.locations.values():
-        store._store[loc] = temperature_repo.load(loc)
+    on_startup()
     yield
-    logging.info("Saving persisted data on shutdown")
-    location_repo.save(store.locations)
-    for ds in store._store.values():
-        temperature_repo.save(ds)
 
 app = FastAPI(lifespan=lifespan)
 
@@ -74,8 +79,13 @@ def get_temperature(location: str, timestamp: datetime) -> Response:
         return JSONResponse(jsonable_encoder(result))
 
 @app.post("/{location}")
-def create_location(location: str, lat: float, lon: float) -> Location:
-    return store.create_location(location, lat, lon)
+def create_location(location: str, lat: float, lon: float) -> Response:
+    result = store.create_location(location, lat, lon)
+    if isinstance(result, str):
+        return PlainTextResponse(result, status_code=400)
+    else:
+        return JSONResponse(jsonable_encoder(result))
+
         
 
 @app.put("/{location}")
@@ -84,7 +94,10 @@ def collect_temperature(location: str, day: date) -> Response:
     if not loc:
         return PlainTextResponse(f"location {location} not found", status_code=404)
     logging.info(f"Updating data for location {location} on day {day}")
-    for ts, value in retriever.retrieve(loc, day).items():
+    if not store.retriver:
+        logging.error("Retriever must not be None!")
+        return PlainTextResponse(f"Retriever is not set", status_code=500)
+    for ts, value in store.retriver.retrieve(loc, day).items():
         logging.debug(f"Got data for {ts}")
         store.store(loc, ts, value)
     return Response(status_code=201)
